@@ -42,6 +42,24 @@ const deleteOrSend = async (message, ctx) => {
 };
 
 const bot = new Telegraf(process.env.TOKEN);
+
+// Parse blacklisted group IDs from environment variable (comma-separated)
+const getBlacklistedGroups = () => {
+  const blacklist = process.env.BLACKLIST_GROUPS;
+  if (!blacklist) return [];
+  return blacklist.split(",").map((id) => id.trim()).filter(Boolean);
+};
+
+// Middleware to block blacklisted groups
+bot.use((ctx, next) => {
+  const chatId = ctx.chat?.id?.toString();
+  const blacklistedGroups = getBlacklistedGroups();
+  if (chatId && blacklistedGroups.includes(chatId)) {
+    return; // Silently ignore messages from blacklisted groups
+  }
+  return next();
+});
+
 bot.command("hashrate", async (ctx) => {
   const message = await getFinalString();
   await deleteOrSend(message, ctx);
